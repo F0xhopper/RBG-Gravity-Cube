@@ -1,8 +1,14 @@
 const canvas = document.getElementById("gridCanvas");
-const canvasSize = canvas.width;
-const gridSize = 50; // 20x20 grid
-let mousePosition = { x: undefined, y: undefined };
+const rotateButton = document.getElementById("rotateButton");
+const clearButton = document.getElementById("clearButton");
+const colourInput = document.getElementById("colourInput");
+const gravityToggleButton = document.getElementById("gravityToggleButton");
 
+const canvasSize = canvas.width;
+const gridSize = 20; // 20x20 grid
+let mousePosition = { x: undefined, y: undefined };
+let selectedColour = "black";
+let gravity = true;
 // Initialize the binary grid (all cells set to 0)
 let binaryGrid = [];
 for (let i = 0; i < gridSize; i++) {
@@ -23,16 +29,32 @@ if (canvas.getContext) {
     for (let i = gridSize - 2; i >= 0; i--) {
       // Start from the second-last row
       for (let j = 0; j < gridSize; j++) {
-        if (binaryGrid[i][j] == 1 && binaryGrid[i + 1][j] == 0) {
+        if (binaryGrid[i][j] !== 0 && binaryGrid[i + 1][j] == 0) {
           // Move the pixel down
+          binaryGrid[i + 1][j] = binaryGrid[i][j];
           binaryGrid[i][j] = 0;
-          binaryGrid[i + 1][j] = 1;
         }
       }
     }
   }
+  function transpose(grid) {
+    return grid[0].map((_, colIndex) => grid.map((row) => row[colIndex]));
+  }
+  function flipBox() {
+    const transposedGrid = transpose(binaryGrid);
+    transposedGrid.forEach((row) => row.reverse());
 
-  function flipBox() {}
+    binaryGrid = transposedGrid;
+  }
+
+  function clearGrid() {
+    for (i = 0; i < binaryGrid.length; i++) {
+      for (j = 0; j < binaryGrid.length; j++) {
+        binaryGrid[j][i] = 0;
+      }
+    }
+  }
+
   // Render the grid based on the binaryGrid array
   function renderGrid() {
     const pixelSize = canvasSize / gridSize;
@@ -40,8 +62,8 @@ if (canvas.getContext) {
       for (let j = 0; j < gridSize; j++) {
         // Fill style based on whether the grid cell is 1 or 0
         ctx.fillStyle =
-          binaryGrid[i][j] === 1
-            ? "rgb(255,228,181) " // Blue for filled cells
+          binaryGrid[i][j] !== 0
+            ? binaryGrid[i][j] // Selected color
             : "rgba(255, 255, 255, 1)"; // White for empty cells
         ctx.fillRect(j * pixelSize, i * pixelSize, pixelSize, pixelSize);
       }
@@ -63,14 +85,27 @@ if (canvas.getContext) {
 
       // Set the clicked cell to 1 (create a "sand" particle)
       if (i < gridSize && j < gridSize && binaryGrid[i][j] === 0) {
-        binaryGrid[i][j] = 1;
+        binaryGrid[i][j] = selectedColour;
       }
 
       // Re-render the grid to show the change
       renderGrid();
     }
   }
+  gravityToggleButton.addEventListener("click", function () {
+    gravity = !gravity;
+    gravityToggleButton.textContent = gravity
+      ? "Turn gravity off"
+      : "Turn gravity on";
+  });
 
+  colourInput.addEventListener("change", function (e) {
+    selectedColour = e.target.value;
+  });
+
+  clearButton.addEventListener("click", clearGrid);
+
+  rotateButton.addEventListener("click", flipBox);
   // Mouse down event - start placing sand
   canvas.addEventListener("mousedown", function () {
     mouseDown = true;
@@ -91,8 +126,9 @@ if (canvas.getContext) {
   function simulate() {
     placeSand(mousePosition);
     // Update the falling pixels
-    pixelFall();
-
+    if (gravity) {
+      pixelFall();
+    }
     // Render the updated grid
     renderGrid();
 

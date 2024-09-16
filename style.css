@@ -8,3 +8,7 @@ body {
 #gridCanvas {
   border: 1px solid grey;
 }
+#toolsContainer {
+  display: flex;
+  flex-direction: column;
+}
